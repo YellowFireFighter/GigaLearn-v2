@@ -90,15 +90,22 @@ public:
 // =========================================
 EnvCreateResult EnvCreateFunc(int index) {
     std::vector<WeightedReward> rewards = {
-        { new FaceBallReward(),                  0.1f  },
-        { new SpeedTowardBallReward(),            5.0f  },
-        { new VelocityBallToGoalOnTouchReward(),  5.0f  },
-        //{ new StrongTouchReward(),                10.0f },
-        { new GoalReward(),                       500.0f},
-        //{ new KickoffProximityReward(),           3.0f  },
-        //{ new SaveBoostReward(),                  0.5f  },
-        { new AirReward(),                  0.15f  },
-        { new TouchBallReward(),                  5.0f  }
+        // Small orientation signal – don't let this dominate
+        { new FaceBallReward(),                  0.05f  },
+        // Getting to the ball – reduced so the bot doesn't just ball-chase
+        { new SpeedTowardBallReward(),            2.0f   },
+        // Strongly reward shooting toward the opponent goal on contact
+        { new VelocityBallToGoalOnTouchReward(), 12.0f  },
+        // Reward hitting the ball hard – discourages gentle nudges
+        { new StrongTouchReward(),                8.0f   },
+        // Scoring is the primary objective – doubled from 500
+        { new GoalReward(),                      1000.0f },
+        // Win kickoffs – getting to the ball first matters
+        { new KickoffProximityReward(),           5.0f   },
+        // Tiny ball-touch reward so the bot still learns contact basics
+        { new TouchBallReward(),                  1.0f   },
+        // AirReward intentionally removed: at low MMR it teaches aimless
+        // aerial behaviour instead of ground-based scoring mechanics.
     };
 
     std::vector<TerminalCondition*> terminalConditions = {
@@ -134,18 +141,33 @@ int main(int argc, char* argv[]) {
     cfg.deviceType = LearnerDeviceType::GPU_CUDA;
     cfg.tickSkip = 8;
     cfg.actionDelay = cfg.tickSkip - 1;
-    cfg.numGames = 192;
+
+    // ── Hardware tuning: RTX 4090 + 30 CPUs + 128 GB RAM ──────────────────
+    // 250 parallel arenas saturates 30 CPU cores with headroom for the OS.
+    cfg.numGames = 250;
     cfg.randomSeed = 123;
 
-    int tsPerItr = 300'000;
+    // Collect 500k steps per iteration (was 300k).  More experience per
+    // update improves gradient estimates with the extra CPU throughput.
+    int tsPerItr = 500'000;
     cfg.ppo.tsPerItr = tsPerItr;
     cfg.ppo.batchSize = tsPerItr;
-    cfg.ppo.miniBatchSize = 100'000;
-    cfg.ppo.epochs = 2;
+
+    // Larger mini-batch takes advantage of the 4090's 24 GB VRAM.
+    cfg.ppo.miniBatchSize = 200'000;
+
+    // One extra epoch squeezes more learning out of each collected batch.
+    cfg.ppo.epochs = 3;
+
+    // FP16 (half-precision) for training and inference on the 4090's Tensor
+    // Cores – roughly 2× faster GPU throughput with negligible quality loss.
+    cfg.ppo.useHalfPrecision = true;
+
     cfg.ppo.entropyScale = 0.01f;
     cfg.ppo.gaeGamma = 0.99;
     cfg.ppo.policyLR = 2e-4;
     cfg.ppo.criticLR = 2e-4;
+    // ──────────────────────────────────────────────────────────────────────
 
     cfg.ppo.sharedHead.layerSizes = {};
     cfg.ppo.policy.layerSizes = { 1024, 1024, 1024, 1024, 1024, 512 };
@@ -169,7 +191,7 @@ int main(int argc, char* argv[]) {
     cfg.sendMetrics = true;
     cfg.metricsProjectName = "yxllowtechlarge";
     cfg.metricsGroupName = "bot";
-    cfg.metricsRunName = "run1";
+    cfg.metricsRunName = "run2";
     cfg.renderMode = false;
 
     // Enable skill tracker to compute and log MMR (ELO-based rating)
