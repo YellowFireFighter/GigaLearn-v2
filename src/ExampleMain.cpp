@@ -90,30 +90,14 @@ public:
 // Env Create Function
 // =========================================
 EnvCreateResult EnvCreateFunc(int index) {
-
-    // ── PHASE 1 rewards (use until ~2 billion timesteps) ──────────────────
-    // Focuses on speed, ball contact, and scoring.  Master ground play first.
-    // NOTE: If the bot drives slowly, the SpeedReward is the fix — it gives a
-    // constant incentive to go fast at all times, not just when chasing the ball.
     std::vector<WeightedReward> rewards = {
-        // Always go fast — the main fix for slow driving.
-        // SpeedReward is defined in CommonRewards.h: returns vel.Length() / CAR_MAX_SPEED.
-        { new SpeedReward(),                      1.0f   },
-        // Small orientation signal — don't let this dominate
-        { new FaceBallReward(),                   0.05f  },
-        // Getting to the ball (reduced so the bot doesn't just ball-chase)
-        { new SpeedTowardBallReward(),             2.0f   },
-        // Strongly reward shooting toward the opponent goal on contact
-        { new VelocityBallToGoalOnTouchReward(),  12.0f  },
-        // Reward hitting the ball hard — discourages gentle nudges
-        { new StrongTouchReward(),                 8.0f   },
-        // Scoring is the primary objective
-        { new GoalReward(),                       1000.0f },
-        // Win kickoffs — getting to the ball first matters
-        { new KickoffProximityReward(),            5.0f   },
-        // Tiny ball-touch reward so the bot still learns contact basics
-        { new TouchBallReward(),                   1.0f   },
-        // Restored: small air reward encourages the bot not to be flat-footed
+        { new FaceBallReward(),                  1.0f  },
+        { new SpeedTowardBallReward(),            5.0f  },
+        { new VelocityBallToGoalOnTouchReward(),  5.0f  },
+        { new StrongTouchReward(),                10.0f },
+        { new GoalReward(),                       500.0f},
+        { new KickoffProximityReward(),           3.0f  },
+        { new SaveBoostReward(),                  0.5f  },
         { new AirReward(),                         0.15f  },
     };
 
@@ -199,7 +183,7 @@ int main(int argc, char* argv[]) {
 
     // FP16 (half-precision) for training and inference on the 4090's Tensor
     // Cores – roughly 2× faster GPU throughput with negligible quality loss.
-    cfg.ppo.useHalfPrecision = true;
+    cfg.ppo.useHalfPrecision = false;
 
     cfg.ppo.entropyScale = 0.01f;
     cfg.ppo.gaeGamma = 0.99;
@@ -228,7 +212,7 @@ int main(int argc, char* argv[]) {
 
     // Save a checkpoint every 5M timesteps (10 iterations at 500k/itr) instead
     // of the default 1M (every 2 iterations), which was slowing down training.
-    cfg.tsPerSave = 5'000'000;
+    cfg.tsPerSave = 10'000'000;
 
     cfg.sendMetrics = true;
     cfg.metricsProjectName = "yxllowtechlarge";
