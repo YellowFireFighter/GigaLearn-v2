@@ -3,7 +3,7 @@
 #include <RLGymCPP/Rewards/ZeroSumReward.h>
 #include <RLGymCPP/TerminalConditions/NoTouchCondition.h>
 #include <RLGymCPP/TerminalConditions/GoalScoreCondition.h>
-#include <RLGymCPP/OBSBuilders/DefaultObs.h>
+#include <RLGymCPP/ObsBuilders/DefaultObs.h>
 #include <RLGymCPP/StateSetters/KickoffState.h>
 #include <RLGymCPP/StateSetters/RandomState.h>
 #include <RLGymCPP/ActionParsers/DefaultAction.h>

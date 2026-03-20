@@ -98,6 +98,13 @@ class BaseCPPAgent(BaseIndependentAgent):
 
     def load_config(self, config_header: ConfigHeader):
         self.cpp_executable_path = config_header.getpath('cpp_executable_path')
+        # On Linux, if the configured path ends with .exe and doesn't exist,
+        # try the same path without the .exe extension (Linux executables have no extension).
+        if self.cpp_executable_path and platform.system() == 'Linux':
+            if self.cpp_executable_path.endswith('.exe') and not os.path.isfile(self.cpp_executable_path):
+                linux_path = self.cpp_executable_path[:-4]
+                if os.path.isfile(linux_path):
+                    self.cpp_executable_path = linux_path
         self.logger.info("C++ executable is configured as {}".format(self.cpp_executable_path))
 
     @staticmethod
