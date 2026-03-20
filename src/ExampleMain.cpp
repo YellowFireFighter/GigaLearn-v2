@@ -192,7 +192,7 @@ int main(int argc, char* argv[]) {
     cfg.ppo.batchSize = tsPerItr;
 
     // Larger mini-batch takes advantage of the 4090's 24 GB VRAM.
-    cfg.ppo.miniBatchSize = 200'000;
+    cfg.ppo.miniBatchSize = 250'000;
 
     // One extra epoch squeezes more learning out of each collected batch.
     cfg.ppo.epochs = 3;
