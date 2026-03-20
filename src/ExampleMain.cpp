@@ -98,23 +98,26 @@ EnvCreateResult EnvCreateFunc(int index) {
     std::vector<WeightedReward> rewards = {
         // Always go fast — the main fix for slow driving.
         // SpeedReward is defined in CommonRewards.h: returns vel.Length() / CAR_MAX_SPEED.
-        { new SpeedReward(),                      1.0f   },
+        //{ new SpeedReward(),                      1.0f   },
         // Small orientation signal — don't let this dominate
-        { new FaceBallReward(),                   1.0f  },
+        { new FaceBallReward(),                   0.1f  },
         // Getting to the ball (reduced so the bot doesn't just ball-chase)
         { new SpeedTowardBallReward(),             5.0f   },
         // Strongly reward shooting toward the opponent goal on contact
-        { new VelocityBallToGoalOnTouchReward(),  12.0f  },
+        { new VelocityBallToGoalOnTouchReward(),  5.0f  },
         // Reward hitting the ball hard — discourages gentle nudges
-        { new StrongTouchReward(),                 8.0f   },
+        { new StrongTouchReward(),                 10.0f   },
         // Scoring is the primary objective
         { new GoalReward(),                       750.0f },
         // Win kickoffs — getting to the ball first matters
         { new KickoffProximityReward(),            5.0f   },
         // Tiny ball-touch reward so the bot still learns contact basics
-        { new TouchBallReward(),                   1.0f   },
+        { new TouchBallReward(),                   5.0f   },
         // Restored: small air reward encourages the bot not to be flat-footed
         { new AirReward(),                         0.15f  },
+        { new KickoffReward(),                                         1.7f },
+        { new SaveReward(),                                            3.5f },
+        { new DirectionalStrongTouchReward(),                          0.7f },
     };
 
     // ── PHASE 2 rewards (swap in after ~2B timesteps / ~500+ MMR) ─────────
