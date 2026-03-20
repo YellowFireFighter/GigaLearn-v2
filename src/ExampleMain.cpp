@@ -90,13 +90,15 @@ public:
 // =========================================
 EnvCreateResult EnvCreateFunc(int index) {
     std::vector<WeightedReward> rewards = {
-        { new FaceBallReward(),                  1.0f  },
+        { new FaceBallReward(),                  0.1f  },
         { new SpeedTowardBallReward(),            5.0f  },
         { new VelocityBallToGoalOnTouchReward(),  5.0f  },
-        { new StrongTouchReward(),                10.0f },
+        //{ new StrongTouchReward(),                10.0f },
         { new GoalReward(),                       500.0f},
-        { new KickoffProximityReward(),           3.0f  },
-        { new SaveBoostReward(),                  0.5f  },
+        //{ new KickoffProximityReward(),           3.0f  },
+        //{ new SaveBoostReward(),                  0.5f  },
+        { new AirReward(),                  0.15f  },
+        { new TouchBallReward(),                  5.0f  }
     };
 
     std::vector<TerminalCondition*> terminalConditions = {
@@ -165,9 +167,9 @@ int main(int argc, char* argv[]) {
     cfg.ppo.sharedHead.addLayerNorm = addLayerNorm;
 
     cfg.sendMetrics = true;
-    cfg.metricsProjectName = "gigalearncpp";
-    cfg.metricsGroupName = "1v1-runs";
-    cfg.metricsRunName = "gigalearncpp-run";
+    cfg.metricsProjectName = "yxllowtechlarge";
+    cfg.metricsGroupName = "bot";
+    cfg.metricsRunName = "run1";
     cfg.renderMode = false;
 
     // Enable skill tracker to compute and log MMR (ELO-based rating)

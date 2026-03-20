@@ -1,6 +1,6 @@
 #include "RLBotClient.h"
 #include "RLGymCPP/ActionParsers/DefaultAction.h"
-#include "RLGymCPP/ObsBuilders/AdvancedObs.h"
+#include "RLGymCPP/ObsBuilders/DefaultObs.h"
 #include "GigaLearnCPP/Util/InferUnit.h"
 #include "GigaLearnCPP/Util/ModelConfig.h"
 #include <filesystem>
@@ -16,18 +16,18 @@ using namespace RLGC;
 
 // Match params with what you trained with
 void rlbotparameters(RLBotParams& params) {
-    params.port = 32257;
+    params.port = 42653;
     params.tickSkip = 8;
     params.actionDelay = 7;
     params.deterministic = true;
-    params.obsSize = 109;
-    params.useGPU = true;
+    params.obsSize = 89;
+    params.useGPU = false;
 
     params.sharedHeadConfig.layerSizes = {};
     params.sharedHeadConfig.activationType = ModelActivationType::RELU;
     params.sharedHeadConfig.addOutputLayer = false;
 
-    params.policyConfig.layerSizes = {1024, 1024, 1024, 1024};
+    params.policyConfig.layerSizes = { 1024, 1024, 1024, 1024, 1024, 512 };
     params.policyConfig.activationType = ModelActivationType::RELU;
     params.policyConfig.addLayerNorm = true;
     params.policyConfig.addOutputLayer = true;
@@ -90,7 +90,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     // Replace with your obs and parser names
-    auto obsBuilder = std::make_unique<AdvancedObs>();
+    auto obsBuilder = std::make_unique<DefaultObs>();
     auto actionParser = std::make_unique<DefaultAction>();
     auto inferUnit = std::make_unique<GGL::InferUnit>(
         obsBuilder.get(),
