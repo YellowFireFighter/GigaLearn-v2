@@ -165,7 +165,18 @@ int main(int argc, char* argv[]) {
     cfg.ppo.sharedHead.addLayerNorm = addLayerNorm;
 
     cfg.sendMetrics = true;
+    cfg.metricsProjectName = "gigalearncpp";
+    cfg.metricsGroupName = "1v1-runs";
+    cfg.metricsRunName = "gigalearncpp-run";
     cfg.renderMode = false;
+
+    // Enable skill tracker to compute and log MMR (ELO-based rating)
+    cfg.skillTracker.enabled = true;
+    cfg.skillTracker.numArenas = 16;
+    cfg.skillTracker.simTime = 45;
+    cfg.skillTracker.maxSimTime = 240;
+    cfg.skillTracker.updateInterval = 16;
+    cfg.skillTracker.ratingInc = 5;
 
     Learner* learner = new Learner(EnvCreateFunc, cfg);
     learner->Start();
