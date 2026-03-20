@@ -197,10 +197,6 @@ int main(int argc, char* argv[]) {
     // One extra epoch squeezes more learning out of each collected batch.
     cfg.ppo.epochs = 3;
 
-    // FP16 (half-precision) for training and inference on the 4090's Tensor
-    // Cores – roughly 2× faster GPU throughput with negligible quality loss.
-    cfg.ppo.useHalfPrecision = true;
-
     cfg.ppo.entropyScale = 0.01f;
     cfg.ppo.gaeGamma = 0.99;
     cfg.ppo.policyLR = 2e-4;
