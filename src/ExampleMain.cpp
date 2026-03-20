@@ -226,6 +226,10 @@ int main(int argc, char* argv[]) {
     cfg.ppo.critic.addLayerNorm = addLayerNorm;
     cfg.ppo.sharedHead.addLayerNorm = addLayerNorm;
 
+    // Save a checkpoint every 5M timesteps (10 iterations at 500k/itr) instead
+    // of the default 1M (every 2 iterations), which was slowing down training.
+    cfg.tsPerSave = 5'000'000;
+
     cfg.sendMetrics = true;
     cfg.metricsProjectName = "yxllowtechlarge";
     cfg.metricsGroupName = "bot";
