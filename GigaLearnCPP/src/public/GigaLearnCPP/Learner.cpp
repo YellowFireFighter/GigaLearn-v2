@@ -859,8 +859,8 @@ void GGL::Learner::Start() {
 				if (metricSender)
 					metricSender->Send(report);
 
-				report.Display(
-					{
+				{
+					std::vector<std::string> displayKeys = {
 						"Average Step Reward",
 						"Policy Entropy",
 						"KL Div Loss",
@@ -879,13 +879,27 @@ void GGL::Learner::Start() {
 						"-Env Step Time",
 						"Consumption Time",
 						"-GAE Time",
-						"-PPO Learn Time"
+						"-PPO Learn Time",
 						"",
 						"Collected Timesteps",
 						"Total Timesteps",
 						"Total Iterations"
+					};
+
+					// Append skill rating (MMR) metrics dynamically
+					bool addedRatingHeader = false;
+					for (const auto& pair : report.data) {
+						if (pair.first.rfind("Rating/", 0) == 0) {
+							if (!addedRatingHeader) {
+								displayKeys.push_back("");
+								addedRatingHeader = true;
+							}
+							displayKeys.push_back(pair.first);
+						}
 					}
-				);
+
+					report.Display(displayKeys);
+				}
 			}
 		}
 		
