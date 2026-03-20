@@ -144,6 +144,10 @@ GGL::Learner::Learner(EnvCreateFn envCreateFn, LearnerConfig config, StepCallbac
 	}
 
 	if (config.sendMetrics && !config.renderMode) {
+		if (config.resetMetricsRun && !runID.empty()) {
+			RG_LOG("\tresetMetricsRun is set, ignoring saved run ID \"" << runID << "\" and starting a fresh wandb run.");
+			runID.clear();
+		}
 		if (!runID.empty())
 			RG_LOG("\tRun ID: " << runID);
 		metricSender = new MetricSender(config.metricsProjectName, config.metricsGroupName, config.metricsRunName, runID);
