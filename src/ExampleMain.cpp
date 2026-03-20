@@ -106,18 +106,18 @@ EnvCreateResult EnvCreateFunc(int index) {
         // Strongly reward shooting toward the opponent goal on contact
         { new VelocityBallToGoalOnTouchReward(),  5.0f  },
         // Reward hitting the ball hard — discourages gentle nudges
-        { new StrongTouchReward(),                 10.0f   },
+        //{ new StrongTouchReward(),                 10.0f   },
         // Scoring is the primary objective
         { new GoalReward(),                       750.0f },
         // Win kickoffs — getting to the ball first matters
-        { new KickoffProximityReward(),            5.0f   },
+        //{ new KickoffProximityReward(),            5.0f   },
         // Tiny ball-touch reward so the bot still learns contact basics
         { new TouchBallReward(),                   5.0f   },
         // Restored: small air reward encourages the bot not to be flat-footed
         { new AirReward(),                         0.15f  },
-        { new KickoffReward(),                                         1.7f },
-        { new SaveReward(),                                            3.5f },
-        { new DirectionalStrongTouchReward(),                          0.7f },
+        //{ new KickoffReward(),                                         1.7f },
+        //{ new SaveReward(),                                            3.5f },
+        //{ new DirectionalStrongTouchReward(),                          0.7f },
     };
 
     // ── PHASE 2 rewards (swap in after ~2B timesteps / ~500+ MMR) ─────────
@@ -195,14 +195,10 @@ int main(int argc, char* argv[]) {
     cfg.ppo.batchSize = tsPerItr;
 
     // Larger mini-batch takes advantage of the 4090's 24 GB VRAM.
-    cfg.ppo.miniBatchSize = 200'000;
+    cfg.ppo.miniBatchSize = 100'000;
 
     // One extra epoch squeezes more learning out of each collected batch.
-    cfg.ppo.epochs = 3;
-
-    // FP16 (half-precision) for training and inference on the 4090's Tensor
-    // Cores – roughly 2× faster GPU throughput with negligible quality loss.
-    cfg.ppo.useHalfPrecision = true;
+    cfg.ppo.epochs = 1;
 
     cfg.ppo.entropyScale = 0.01f;
     cfg.ppo.gaeGamma = 0.99;
@@ -232,7 +228,7 @@ int main(int argc, char* argv[]) {
     cfg.sendMetrics = true;
     cfg.metricsProjectName = "yxllowtechlarge";
     cfg.metricsGroupName = "bot";
-    cfg.metricsRunName = "run2";
+    cfg.metricsRunName = "run3";
     cfg.renderMode = false;
 
     // ── Self-play against old versions (15% chance per iteration) ─────────
