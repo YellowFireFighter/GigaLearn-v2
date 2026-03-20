@@ -8,6 +8,7 @@
 #include <RLGymCPP/StateSetters/RandomState.h>
 #include <RLGymCPP/ActionParsers/DefaultAction.h>
 #include <RLGymCPP/Rewards/Reward.h>
+#include "testrewards.h"
 
 using namespace GGL;
 using namespace RLGC;
@@ -89,17 +90,61 @@ public:
 // Env Create Function
 // =========================================
 EnvCreateResult EnvCreateFunc(int index) {
+
+    // ── PHASE 1 rewards (use until ~2 billion timesteps) ──────────────────
+    // Focuses on speed, ball contact, and scoring.  Master ground play first.
+    // NOTE: If the bot drives slowly, the SpeedReward is the fix — it gives a
+    // constant incentive to go fast at all times, not just when chasing the ball.
     std::vector<WeightedReward> rewards = {
-        { new FaceBallReward(),                  0.1f  },
-        { new SpeedTowardBallReward(),            5.0f  },
-        { new VelocityBallToGoalOnTouchReward(),  5.0f  },
-        //{ new StrongTouchReward(),                10.0f },
-        { new GoalReward(),                       500.0f},
-        //{ new KickoffProximityReward(),           3.0f  },
-        //{ new SaveBoostReward(),                  0.5f  },
-        { new AirReward(),                  0.15f  },
-        { new TouchBallReward(),                  5.0f  }
+        // Always go fast — the main fix for slow driving.
+        // SpeedReward is defined in CommonRewards.h: returns vel.Length() / CAR_MAX_SPEED.
+        { new SpeedReward(),                      1.0f   },
+        // Small orientation signal — don't let this dominate
+        { new FaceBallReward(),                   0.05f  },
+        // Getting to the ball (reduced so the bot doesn't just ball-chase)
+        { new SpeedTowardBallReward(),             2.0f   },
+        // Strongly reward shooting toward the opponent goal on contact
+        { new VelocityBallToGoalOnTouchReward(),  12.0f  },
+        // Reward hitting the ball hard — discourages gentle nudges
+        { new StrongTouchReward(),                 8.0f   },
+        // Scoring is the primary objective
+        { new GoalReward(),                       1000.0f },
+        // Win kickoffs — getting to the ball first matters
+        { new KickoffProximityReward(),            5.0f   },
+        // Tiny ball-touch reward so the bot still learns contact basics
+        { new TouchBallReward(),                   1.0f   },
+        // Restored: small air reward encourages the bot not to be flat-footed
+        { new AirReward(),                         0.15f  },
     };
+
+    // ── PHASE 2 rewards (swap in after ~2B timesteps / ~500+ MMR) ─────────
+    // Uncomment this block and comment out the Phase 1 block above once the
+    // bot can reliably score on the ground.  These rewards teach rotation,
+    // defense, boost management, and advanced mechanics (dribbles, flicks).
+    //
+    // std::vector<WeightedReward> rewards = {
+    //     // Aggressive goal reward: conceding is penalised 5× harder
+    //     { new GoalReward(-5.0f),                                     20.0f },
+    //     // Zero-sum ball-to-goal velocity (team-shared, 0.5 spirit)
+    //     { new ZeroSumReward(new VelocityBallToGoalReward(), 0.5f),    4.5f },
+    //     // Win kickoffs
+    //     { new KickoffReward(),                                         1.7f },
+    //     // Reward picking up boost so the bot learns boost management
+    //     { new PickupBoostReward(),                                     0.3f },
+    //     // Shadow defense: stay between ball and own goal
+    //     { new ShadowDefenseReward(),                                   0.7f },
+    //     // Reward defensive saves
+    //     { new SaveReward(),                                            3.5f },
+    //     // Strong touch directed toward the opponent goal
+    //     { new DirectionalStrongTouchReward(),                          0.7f },
+    //     // Encourage correct field rotation (stay behind the ball)
+    //     { new FieldRotationReward(),                                   1.0f },
+    //     // Dribble: balance ball on roof of car
+    //     { new StrictDribbleReward(),                                   1.0f },
+    //     // Aerial flick toward goal
+    //     { new MawkzyFlickReward(),                                     3.5f },
+    // };
+    // ──────────────────────────────────────────────────────────────────────
 
     std::vector<TerminalCondition*> terminalConditions = {
         new NoTouchCondition(30),
@@ -134,18 +179,33 @@ int main(int argc, char* argv[]) {
     cfg.deviceType = LearnerDeviceType::GPU_CUDA;
     cfg.tickSkip = 8;
     cfg.actionDelay = cfg.tickSkip - 1;
-    cfg.numGames = 192;
+
+    // ── Hardware tuning: RTX 4090 + 30 CPUs + 128 GB RAM ──────────────────
+    // 250 parallel arenas saturates 30 CPU cores with headroom for the OS.
+    cfg.numGames = 250;
     cfg.randomSeed = 123;
 
-    int tsPerItr = 300'000;
+    // Collect 500k steps per iteration (was 300k).  More experience per
+    // update improves gradient estimates with the extra CPU throughput.
+    int tsPerItr = 500'000;
     cfg.ppo.tsPerItr = tsPerItr;
     cfg.ppo.batchSize = tsPerItr;
-    cfg.ppo.miniBatchSize = 100'000;
-    cfg.ppo.epochs = 2;
+
+    // Larger mini-batch takes advantage of the 4090's 24 GB VRAM.
+    cfg.ppo.miniBatchSize = 200'000;
+
+    // One extra epoch squeezes more learning out of each collected batch.
+    cfg.ppo.epochs = 3;
+
+    // FP16 (half-precision) for training and inference on the 4090's Tensor
+    // Cores – roughly 2× faster GPU throughput with negligible quality loss.
+    cfg.ppo.useHalfPrecision = true;
+
     cfg.ppo.entropyScale = 0.01f;
     cfg.ppo.gaeGamma = 0.99;
     cfg.ppo.policyLR = 2e-4;
     cfg.ppo.criticLR = 2e-4;
+    // ──────────────────────────────────────────────────────────────────────
 
     cfg.ppo.sharedHead.layerSizes = {};
     cfg.ppo.policy.layerSizes = { 1024, 1024, 1024, 1024, 1024, 512 };
@@ -169,8 +229,21 @@ int main(int argc, char* argv[]) {
     cfg.sendMetrics = true;
     cfg.metricsProjectName = "yxllowtechlarge";
     cfg.metricsGroupName = "bot";
-    cfg.metricsRunName = "run1";
+    cfg.metricsRunName = "run2";
     cfg.renderMode = false;
+
+    // ── Self-play against old versions (15% chance per iteration) ─────────
+    // Every 25M steps a snapshot of the current policy is saved to disk.
+    // On ~15% of iterations the bot plays against one of these old snapshots
+    // (randomly chosen, on a randomly assigned team) instead of a clone of
+    // itself.  This prevents the bot from exploiting its own predictable
+    // patterns and encourages more robust play.
+    cfg.savePolicyVersions    = true;
+    cfg.tsPerVersion          = 25'000'000; // Save a version every 25M steps
+    cfg.maxOldVersions        = 32;         // Keep up to 32 old snapshots in memory
+    cfg.trainAgainstOldVersions = true;
+    cfg.trainAgainstOldChance   = 0.15f;   // 15% of iterations vs an old version
+    // ──────────────────────────────────────────────────────────────────────
 
     // Enable skill tracker to compute and log MMR (ELO-based rating)
     cfg.skillTracker.enabled = true;
