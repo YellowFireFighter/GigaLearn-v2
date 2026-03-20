@@ -100,15 +100,15 @@ EnvCreateResult EnvCreateFunc(int index) {
         // SpeedReward is defined in CommonRewards.h: returns vel.Length() / CAR_MAX_SPEED.
         { new SpeedReward(),                      1.0f   },
         // Small orientation signal — don't let this dominate
-        { new FaceBallReward(),                   0.05f  },
+        { new FaceBallReward(),                   1.0f  },
         // Getting to the ball (reduced so the bot doesn't just ball-chase)
-        { new SpeedTowardBallReward(),             2.0f   },
+        { new SpeedTowardBallReward(),             5.0f   },
         // Strongly reward shooting toward the opponent goal on contact
         { new VelocityBallToGoalOnTouchReward(),  12.0f  },
         // Reward hitting the ball hard — discourages gentle nudges
         { new StrongTouchReward(),                 8.0f   },
         // Scoring is the primary objective
-        { new GoalReward(),                       1000.0f },
+        { new GoalReward(),                       750.0f },
         // Win kickoffs — getting to the ball first matters
         { new KickoffProximityReward(),            5.0f   },
         // Tiny ball-touch reward so the bot still learns contact basics
