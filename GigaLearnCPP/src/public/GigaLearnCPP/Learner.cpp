@@ -286,6 +286,15 @@ void GGL::Learner::StartQuitKeyThread(bool& quitPressed, std::thread& outThread)
 
 	outThread.detach();
 }
+
+void GGL::Learner::SetLearningRates(float policyLR, float criticLR) {
+	ppo->SetLearningRates(policyLR, criticLR);
+}
+
+void GGL::Learner::SetEntropyScale(float scale) {
+	ppo->config.entropyScale = scale;
+}
+
 void GGL::Learner::StartTransferLearn(const TransferLearnConfig& tlConfig) {
 
 	RG_LOG("Starting transfer learning...");
