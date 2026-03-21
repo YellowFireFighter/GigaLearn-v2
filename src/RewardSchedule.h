@@ -10,7 +10,7 @@
 //   resuming from a checkpoint) and atomically rebuilds rewards + updates hyperparams.
 //
 // ── Training plan ────────────────────────────────────────────────────────────
-//  0 – 100 M   TouchBall(5) | FaceBall(0.1) | VelPlayerToBall(1) | Air(0.15)
+//  0 – 100 M   TouchBall(5) | FaceBall(0.1) | VelPlayerToBall(1)
 //  100 M+      + GoalReward(-0.80, 150) | + VelBallToGoal(5) | LR → 1e-4
 //  550 M       entropyScale → 0.025
 //  1.0 B       remove FaceBall | trainAgainstOldVersions = true
@@ -67,8 +67,6 @@ inline std::vector<WeightedReward> BuildRewardsForStep(uint64_t totalSteps) {
     // Phase 2+: VelocityBallToGoalReward
     if (phase2)
         rewards.push_back({ new VelocityBallToGoalReward(), 5.0f });
-
-    rewards.push_back({ new AirReward(), 0.15f });
 
     // 1.5 B+: KickoffProximityReward
     if (hasKickoff)

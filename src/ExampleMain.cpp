@@ -133,8 +133,6 @@ int main(int argc, char* argv[]) {
     cfg.metricsRunName = "run4";
     cfg.renderMode = false;
 
-    cfg.ppo.useHalfPrecision = true;
-
     cfg.savePolicyVersions    = true;   // Keep old versions so 1.0B milestone can enable self-play
     cfg.tsPerVersion          = 25'000'000;
     cfg.maxOldVersions        = 32;
