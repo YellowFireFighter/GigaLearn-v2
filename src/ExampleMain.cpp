@@ -3,7 +3,7 @@
 #include <RLGymCPP/Rewards/ZeroSumReward.h>
 #include <RLGymCPP/TerminalConditions/NoTouchCondition.h>
 #include <RLGymCPP/TerminalConditions/GoalScoreCondition.h>
-#include <RLGymCPP/ObsBuilders/DefaultObs.h>
+#include <RLGymCPP/ObsBuilders/AdvancedObs.h>
 #include <RLGymCPP/StateSetters/KickoffState.h>
 #include <RLGymCPP/StateSetters/RandomState.h>
 #include <RLGymCPP/ActionParsers/DefaultAction.h>
@@ -13,9 +13,6 @@
 using namespace GGL;
 using namespace RLGC;
 
-// =========================================
-// SpeedTowardBallReward
-// =========================================
 class SpeedTowardBallReward : public Reward {
 public:
     float GetReward(const Player& player, const GameState& state, bool isFinal) override {
@@ -28,9 +25,6 @@ public:
     }
 };
 
-// =========================================
-// VelocityBallToGoalOnTouchReward
-// =========================================
 class VelocityBallToGoalOnTouchReward : public Reward {
 public:
     float GetReward(const Player& player, const GameState& state, bool isFinal) override {
@@ -45,9 +39,6 @@ public:
     }
 };
 
-// =========================================
-// KickoffProximityReward
-// =========================================
 class KickoffProximityReward : public Reward {
 public:
     float GetReward(const Player& player, const GameState& state, bool isFinal) override {
@@ -68,9 +59,6 @@ public:
     }
 };
 
-// =========================================
-// RandomStateSetter (80% kickoff, 20% random)
-// =========================================
 class RandomStateSetter : public StateSetter {
 public:
     KickoffState kickoff;
@@ -86,68 +74,14 @@ public:
     }
 };
 
-// =========================================
-// Env Create Function
-// =========================================
 EnvCreateResult EnvCreateFunc(int index) {
 
-    // ── PHASE 1 rewards (use until ~2 billion timesteps) ──────────────────
-    // Focuses on speed, ball contact, and scoring.  Master ground play first.
-    // NOTE: If the bot drives slowly, the SpeedReward is the fix — it gives a
-    // constant incentive to go fast at all times, not just when chasing the ball.
     std::vector<WeightedReward> rewards = {
-        // Always go fast — the main fix for slow driving.
-        // SpeedReward is defined in CommonRewards.h: returns vel.Length() / CAR_MAX_SPEED.
-        //{ new SpeedReward(),                      1.0f   },
-        // Small orientation signal — don't let this dominate
-        { new FaceBallReward(),                   0.1f  },
-        // Getting to the ball (reduced so the bot doesn't just ball-chase)
-        { new SpeedTowardBallReward(),             5.0f   },
-        // Strongly reward shooting toward the opponent goal on contact
-        { new VelocityBallToGoalOnTouchReward(),  5.0f  },
-        // Reward hitting the ball hard — discourages gentle nudges
-        //{ new StrongTouchReward(),                 10.0f   },
-        // Scoring is the primary objective
-        { new GoalReward(),                       750.0f },
-        // Win kickoffs — getting to the ball first matters
-        //{ new KickoffProximityReward(),            5.0f   },
-        // Tiny ball-touch reward so the bot still learns contact basics
-        { new TouchBallReward(),                   5.0f   },
-        // Restored: small air reward encourages the bot not to be flat-footed
-        { new AirReward(),                         0.15f  },
-        //{ new KickoffReward(),                                         1.7f },
-        //{ new SaveReward(),                                            3.5f },
-        //{ new DirectionalStrongTouchReward(),                          0.7f },
+        { new TouchBallReward(), 5.0f },
+        { new FaceBallReward(), 0.1f },
+        { new VelocityPlayerToBallReward(), 1.0f },
+        { new AirReward(), 0.15f },
     };
-
-    // ── PHASE 2 rewards (swap in after ~2B timesteps / ~500+ MMR) ─────────
-    // Uncomment this block and comment out the Phase 1 block above once the
-    // bot can reliably score on the ground.  These rewards teach rotation,
-    // defense, boost management, and advanced mechanics (dribbles, flicks).
-    //
-    // std::vector<WeightedReward> rewards = {
-    //     // Aggressive goal reward: conceding is penalised 5× harder
-    //     { new GoalReward(-5.0f),                                     20.0f },
-    //     // Zero-sum ball-to-goal velocity (team-shared, 0.5 spirit)
-    //     { new ZeroSumReward(new VelocityBallToGoalReward(), 0.5f),    4.5f },
-    //     // Win kickoffs
-    //     { new KickoffReward(),                                         1.7f },
-    //     // Reward picking up boost so the bot learns boost management
-    //     { new PickupBoostReward(),                                     0.3f },
-    //     // Shadow defense: stay between ball and own goal
-    //     { new ShadowDefenseReward(),                                   0.7f },
-    //     // Reward defensive saves
-    //     { new SaveReward(),                                            3.5f },
-    //     // Strong touch directed toward the opponent goal
-    //     { new DirectionalStrongTouchReward(),                          0.7f },
-    //     // Encourage correct field rotation (stay behind the ball)
-    //     { new FieldRotationReward(),                                   1.0f },
-    //     // Dribble: balance ball on roof of car
-    //     { new StrictDribbleReward(),                                   1.0f },
-    //     // Aerial flick toward goal
-    //     { new MawkzyFlickReward(),                                     3.5f },
-    // };
-    // ──────────────────────────────────────────────────────────────────────
 
     std::vector<TerminalCondition*> terminalConditions = {
         new NoTouchCondition(30),
@@ -163,7 +97,7 @@ EnvCreateResult EnvCreateFunc(int index) {
 
     EnvCreateResult result = {};
     result.actionParser = new DefaultAction();
-    result.obsBuilder = new DefaultObs();
+    result.obsBuilder = new AdvancedObs();
     result.stateSetter = new RandomStateSetter();
     result.terminalConditions = terminalConditions;
     result.rewards = rewards;
@@ -172,9 +106,6 @@ EnvCreateResult EnvCreateFunc(int index) {
     return result;
 }
 
-// =========================================
-// Main
-// =========================================
 int main(int argc, char* argv[]) {
     RocketSim::Init("collision_meshes");
 
@@ -183,28 +114,21 @@ int main(int argc, char* argv[]) {
     cfg.tickSkip = 8;
     cfg.actionDelay = cfg.tickSkip - 1;
 
-    // ── Hardware tuning: RTX 4090 + 30 CPUs + 128 GB RAM ──────────────────
-    // 250 parallel arenas saturates 30 CPU cores with headroom for the OS.
     cfg.numGames = 250;
     cfg.randomSeed = 123;
 
-    // Collect 500k steps per iteration (was 300k).  More experience per
-    // update improves gradient estimates with the extra CPU throughput.
     int tsPerItr = 500'000;
     cfg.ppo.tsPerItr = tsPerItr;
     cfg.ppo.batchSize = tsPerItr;
 
-    // Larger mini-batch takes advantage of the 4090's 24 GB VRAM.
     cfg.ppo.miniBatchSize = 100'000;
 
-    // One extra epoch squeezes more learning out of each collected batch.
-    cfg.ppo.epochs = 1;
+    cfg.ppo.epochs = 2;
 
-    cfg.ppo.entropyScale = 0.01f;
+    cfg.ppo.entropyScale = 0.035f;
     cfg.ppo.gaeGamma = 0.99;
     cfg.ppo.policyLR = 2e-4;
     cfg.ppo.criticLR = 2e-4;
-    // ──────────────────────────────────────────────────────────────────────
 
     cfg.ppo.sharedHead.layerSizes = {};
     cfg.ppo.policy.layerSizes = { 1024, 1024, 1024, 1024, 1024, 512 };
@@ -228,29 +152,32 @@ int main(int argc, char* argv[]) {
     cfg.sendMetrics = true;
     cfg.metricsProjectName = "yxllowtechlarge";
     cfg.metricsGroupName = "bot";
-    cfg.metricsRunName = "run3";
+    cfg.metricsRunName = "run4";
     cfg.renderMode = false;
 
-    // ── Self-play against old versions (15% chance per iteration) ─────────
-    // Every 25M steps a snapshot of the current policy is saved to disk.
-    // On ~15% of iterations the bot plays against one of these old snapshots
-    // (randomly chosen, on a randomly assigned team) instead of a clone of
-    // itself.  This prevents the bot from exploiting its own predictable
-    // patterns and encourages more robust play.
-    cfg.savePolicyVersions    = true;
-    cfg.tsPerVersion          = 25'000'000; // Save a version every 25M steps
-    cfg.maxOldVersions        = 32;         // Keep up to 32 old snapshots in memory
-    cfg.trainAgainstOldVersions = true;
-    cfg.trainAgainstOldChance   = 0.15f;   // 15% of iterations vs an old version
-    // ──────────────────────────────────────────────────────────────────────
+    cfg.savePolicyVersions    = false;
+    cfg.tsPerVersion          = 25'000'000;
+    cfg.maxOldVersions        = 32;
+    cfg.trainAgainstOldVersions = false;
+    cfg.trainAgainstOldChance   = 0.15f; 
 
-    // Enable skill tracker to compute and log MMR (ELO-based rating)
     cfg.skillTracker.enabled = true;
     cfg.skillTracker.numArenas = 16;
     cfg.skillTracker.simTime = 45;
     cfg.skillTracker.maxSimTime = 240;
     cfg.skillTracker.updateInterval = 16;
     cfg.skillTracker.ratingInc = 5;
+
+    bool renderMode = true;
+    for (int i = 1; i < argc; i++) {
+        if (std::string(argv[i]) == "--render") {
+            cfg.sendMetrics = false;  
+            cfg.ppo.deterministic = true; 
+            cfg.renderMode = true;     
+            renderMode = true;
+            break;
+        }
+    }
 
     Learner* learner = new Learner(EnvCreateFunc, cfg);
     learner->Start();
