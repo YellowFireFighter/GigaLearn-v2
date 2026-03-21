@@ -10,9 +10,12 @@
 #include <RLGymCPP/Rewards/Reward.h>
 #include "testrewards.h"
 #include "RewardSchedule.h"
+#include <atomic>
 
 using namespace GGL;
 using namespace RLGC;
+
+static std::atomic<uint64_t> g_totalSteps{ 0 };
 
 class SpeedTowardBallReward : public Reward {
 public:
@@ -56,12 +59,7 @@ public:
 };
 
 EnvCreateResult EnvCreateFunc(int index) {
-
-    // Build the correct reward list for the current training phase.
-    // On first start totalTimesteps = 0 (Phase 1 rewards).
-    // If resuming from a checkpoint, the MilestoneTracker step callback will
-    // detect the correct phase on the very first iteration and rebuild rewards.
-    std::vector<WeightedReward> rewards = BuildRewardsForStep(0);
+    std::vector<WeightedReward> rewards = BuildRewardsForStep(g_totalSteps.load());
 
     std::vector<TerminalCondition*> terminalConditions = {
         new NoTouchCondition(30),
@@ -162,10 +160,11 @@ int main(int argc, char* argv[]) {
     MilestoneTracker milestoneTracker;
 
     auto stepCallback = [&milestoneTracker](Learner* learner,
-                                            const std::vector<RLGC::GameState>&,
-                                            Report&) {
-        milestoneTracker.CheckAndApply(learner);
-    };
+        const std::vector<RLGC::GameState>&,
+        Report&) {
+            g_totalSteps.store(learner->totalTimesteps);
+            milestoneTracker.CheckAndApply(learner);
+        };
 
     Learner* learner = new Learner(EnvCreateFunc, cfg, stepCallback);
     learner->Start();
