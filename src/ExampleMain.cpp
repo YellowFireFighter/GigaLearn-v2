@@ -92,14 +92,14 @@ int main(int argc, char* argv[]) {
     cfg.tickSkip = 8;
     cfg.actionDelay = cfg.tickSkip - 1;
 
-    cfg.numGames = 250;
+    cfg.numGames = 600;
     cfg.randomSeed = 123;
 
     int tsPerItr = 500'000;
     cfg.ppo.tsPerItr = tsPerItr;
     cfg.ppo.batchSize = tsPerItr;
 
-    cfg.ppo.miniBatchSize = 100'000;
+    cfg.ppo.miniBatchSize = 250'000;
 
     cfg.ppo.epochs = 2;
 
@@ -133,11 +133,15 @@ int main(int argc, char* argv[]) {
     cfg.metricsRunName = "run4";
     cfg.renderMode = false;
 
+    cfg.ppo.useHalfPrecision = true;
+
     cfg.savePolicyVersions    = true;   // Keep old versions so 1.0B milestone can enable self-play
     cfg.tsPerVersion          = 25'000'000;
     cfg.maxOldVersions        = 32;
     cfg.trainAgainstOldVersions = false;  // Enabled automatically at 1.0B by MilestoneTracker
     cfg.trainAgainstOldChance   = 0.15f; 
+
+    cfg.tsPerSave = 100'000'000;
 
     cfg.skillTracker.enabled = true;
     cfg.skillTracker.numArenas = 16;
