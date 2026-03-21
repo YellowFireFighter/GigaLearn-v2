@@ -142,12 +142,14 @@ struct MilestoneTracker {
         // Apply cumulative hyperparameter config based on current step count
         _applyConfig(learner);
 
-        // Rebuild rewards for every arena (once, reflecting current step count)
-        for (auto& arenaRewards : learner->envSet->rewards) {
-            for (auto& wr : arenaRewards)
-                delete wr.reward;
-            arenaRewards = BuildRewardsForStep(learner->totalTimesteps);
-        }
+        // NOTE: Automatic reward rebuilding is disabled — it causes a segfault
+        // because the reward objects are deleted while they may still be in use
+        // by the environment threads, and the internal lastRewards cache is not
+        // updated to match the new reward-list size.
+        // To activate new rewards (e.g. Phase 2 at 100 M steps), save a
+        // checkpoint at the milestone and restart the process — the correct
+        // reward set will be picked up automatically via BuildRewardsForStep()
+        // inside EnvCreateFunc, which reads g_totalSteps at startup.
 
         return true;
     }
