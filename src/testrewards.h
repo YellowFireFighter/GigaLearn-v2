@@ -50,6 +50,32 @@ public:
 };
 
 // =========================================
+// KickoffProximityReward
+// =========================================
+// PHASE 1 + 2 (added at 1.5 B milestone)
+// Binary kickoff reward: +1 if the player is closer to the ball than the
+// nearest opponent, -1 otherwise.  Simpler than KickoffReward.
+class KickoffProximityReward : public Reward {
+public:
+    float GetReward(const Player& player, const GameState& state, bool isFinal) override {
+        if (state.ball.vel.Length() > 100.f) return 0.f;
+
+        float playerDist = (player.pos - state.ball.pos).Length();
+        float closestOpp = 1e9f;
+
+        for (auto& p : state.players) {
+            if (p.team != player.team) {
+                float d = (p.pos - state.ball.pos).Length();
+                if (d < closestOpp) closestOpp = d;
+            }
+        }
+
+        if (closestOpp >= 1e9f) return 0.f;
+        return (playerDist < closestOpp) ? 1.f : -1.f;
+    }
+};
+
+// =========================================
 // ShadowDefenseReward
 // =========================================
 // PHASE 2

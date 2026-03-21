@@ -50,6 +50,12 @@ namespace GGL {
 		void SaveStats(std::filesystem::path path);
 		void LoadStats(std::filesystem::path path);
 
+		// Dynamic hyperparameter helpers — safe to call from a StepCallbackFn.
+		// These forward to the running PPOLearner without requiring user code to
+		// include the private PPOLearner header.
+		void SetLearningRates(float policyLR, float criticLR);
+		void SetEntropyScale(float scale);
+
 		RG_NO_COPY(Learner);
 
 		~Learner();

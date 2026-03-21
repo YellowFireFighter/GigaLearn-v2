@@ -9,6 +9,7 @@
 #include <RLGymCPP/ActionParsers/DefaultAction.h>
 #include <RLGymCPP/Rewards/Reward.h>
 #include "testrewards.h"
+#include "RewardSchedule.h"
 
 using namespace GGL;
 using namespace RLGC;
@@ -39,26 +40,6 @@ public:
     }
 };
 
-class KickoffProximityReward : public Reward {
-public:
-    float GetReward(const Player& player, const GameState& state, bool isFinal) override {
-        if (state.ball.vel.Length() > 100.f) return 0.f;
-
-        float playerDist = (player.pos - state.ball.pos).Length();
-        float closestOpp = 1e9f;
-
-        for (auto& p : state.players) {
-            if (p.team != player.team) {
-                float d = (p.pos - state.ball.pos).Length();
-                if (d < closestOpp) closestOpp = d;
-            }
-        }
-
-        if (closestOpp >= 1e9f) return 0.f;
-        return (playerDist < closestOpp) ? 1.f : -1.f;
-    }
-};
-
 class RandomStateSetter : public StateSetter {
 public:
     KickoffState kickoff;
@@ -76,12 +57,11 @@ public:
 
 EnvCreateResult EnvCreateFunc(int index) {
 
-    std::vector<WeightedReward> rewards = {
-        { new TouchBallReward(), 5.0f },
-        { new FaceBallReward(), 0.1f },
-        { new VelocityPlayerToBallReward(), 1.0f },
-        { new AirReward(), 0.15f },
-    };
+    // Build the correct reward list for the current training phase.
+    // On first start totalTimesteps = 0 (Phase 1 rewards).
+    // If resuming from a checkpoint, the MilestoneTracker step callback will
+    // detect the correct phase on the very first iteration and rebuild rewards.
+    std::vector<WeightedReward> rewards = BuildRewardsForStep(0);
 
     std::vector<TerminalCondition*> terminalConditions = {
         new NoTouchCondition(30),
@@ -155,10 +135,10 @@ int main(int argc, char* argv[]) {
     cfg.metricsRunName = "run4";
     cfg.renderMode = false;
 
-    cfg.savePolicyVersions    = false;
+    cfg.savePolicyVersions    = true;   // Keep old versions so 1.0B milestone can enable self-play
     cfg.tsPerVersion          = 25'000'000;
     cfg.maxOldVersions        = 32;
-    cfg.trainAgainstOldVersions = false;
+    cfg.trainAgainstOldVersions = false;  // Enabled automatically at 1.0B by MilestoneTracker
     cfg.trainAgainstOldChance   = 0.15f; 
 
     cfg.skillTracker.enabled = true;
@@ -179,7 +159,15 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    Learner* learner = new Learner(EnvCreateFunc, cfg);
+    MilestoneTracker milestoneTracker;
+
+    auto stepCallback = [&milestoneTracker](Learner* learner,
+                                            const std::vector<RLGC::GameState>&,
+                                            Report&) {
+        milestoneTracker.CheckAndApply(learner);
+    };
+
+    Learner* learner = new Learner(EnvCreateFunc, cfg, stepCallback);
     learner->Start();
 
     return EXIT_SUCCESS;
