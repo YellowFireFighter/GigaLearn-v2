@@ -143,11 +143,11 @@ struct MilestoneTracker {
         _applyConfig(learner);
 
         // Rebuild rewards for every arena (once, reflecting current step count)
-        for (auto& arenaRewards : learner->envSet->rewards) {
-            for (auto& wr : arenaRewards)
-                delete wr.reward;
-            arenaRewards = BuildRewardsForStep(learner->totalTimesteps);
-        }
+        //for (auto& arenaRewards : learner->envSet->rewards) {
+        //    for (auto& wr : arenaRewards)
+        //        delete wr.reward;
+        //    arenaRewards = BuildRewardsForStep(learner->totalTimesteps);
+        //}
 
         return true;
     }
