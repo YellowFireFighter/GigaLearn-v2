@@ -59,6 +59,9 @@ namespace GGL {
 		std::string metricsProjectName = "gigalearncpp"; // Project name for the python metrics receiver
 		std::string metricsGroupName = "unnamed-runs"; // Group name for the python metrics receiver
 		std::string metricsRunName = "gigalearncpp-run"; // Run name for the python metrics receiver
+		// When true, ignore any saved wandb run ID from the loaded checkpoint and start a fresh run.
+		// Set this to true when loading a checkpoint from a different trainer to avoid logging to the wrong wandb run.
+		bool resetMetricsRun = false;
 
 		bool savePolicyVersions = false;
 		int64_t tsPerVersion = 25'000'000;
